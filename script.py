@@ -47,8 +47,8 @@ def prototype_main(feeds_filename, **kwargs):
             # no 404 -> multireddit exists -> merge existing and file
             print(f"Feed {multireddit.display_name} already exists.")
 
-def _main_show(verbose, feeds):
-    print(f"Calling _main_show() with {verbose=} and {feeds=}")
+def _main_show(reddit, username, verbose, feeds):
+    print(f"Calling _main_show() with {reddit=}, {username=}, {verbose=} and {feeds=}")
 
 def main():
 
@@ -57,6 +57,7 @@ def main():
     }
 
     parser = argparse.ArgumentParser(description="Show existing feeds (wip). More commands to come!")
+    parser.add_argument("auth", help="path to the file which contains authorization data. The file should be in JSON format, containing a single object with the following five keys: client_id, client_secret, user_agent, username and password. The file should be similar to ./reddit_secrets-example.json.")
     subparsers = parser.add_subparsers(title="subcommands", required=True, help="the command to execute")
 
     curr_command = "show"
@@ -74,8 +75,13 @@ def main():
     args = parser.parse_args()
     args_dict = vars(args)
 
+    # TODO: error checking
+    auth_file = args_dict.pop("auth")
+    reddit_auth = read_json(auth_file)
+    reddit = praw.Reddit(**reddit_auth)
+
     func = args_dict.pop("func")
-    func(**args_dict)
+    func(reddit, reddit_auth["username"], **args_dict)
 
 if __name__ == "__main__":
     main()
