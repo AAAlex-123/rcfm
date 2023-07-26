@@ -100,12 +100,12 @@ def _main_show(reddit, verbose, feeds):
     if missing_count > 0:
         print(f"""The following {"feed doesn't" if missing_count == 1 else f"{missing_count} feeds don't"} exist for user '{username}': {', '.join(missing_names)}""")
 
-def _main_create(reddit, names):
-    print(f"Calling _main_create() with {reddit=}, {names=}")
+def _main_create(reddit, feeds):
+    print(f"Calling _main_create() with {reddit=}, {feeds=}")
 
     existing_feed_names = []
 
-    for display_name in names:
+    for display_name in feeds:
         # TODO: error checking for invalid name
         m = reddit.multireddit.create(subreddits=[], display_name=display_name)
 
@@ -144,7 +144,7 @@ def main():
 
     curr_command = "create"
     parser_create = subparsers.add_parser(curr_command, help="create a new feed")
-    parser_create.add_argument("names", nargs='+', help="the names of the feeds to create")
+    parser_create.add_argument("feeds", nargs='+', help="the names of the feeds to create")
     # TODO: more options like verbose output etc
     parser_create.set_defaults(func=commands[curr_command])
 
