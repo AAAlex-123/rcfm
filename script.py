@@ -47,21 +47,13 @@ def prototype_main(feeds_filename, **kwargs):
             # no 404 -> multireddit exists -> merge existing and file
             print(f"Feed {multireddit.display_name} already exists.")
 
-def _main_show(reddit, username, verbose, feeds):
-    print(f"Calling _main_show() with {reddit=}, {username=}, {verbose=} and {feeds=}")
+def _main_show(reddit, verbose, feeds):
+    print(f"Calling _main_show() with {reddit=}, {verbose=} and {feeds=}")
 
-    if feeds == []:
-        multireddits = reddit.redditor(username).multireddits()
-        missing_names = []
-    else:
-        multireddits = []
-        missing_names = []
-        for multireddit_name in feeds:
-            multireddit = reddit.multireddit(redditor=username, name=multireddit_name)
-            if (_multireddit_exists(multireddit)):
-                multireddits.append(multireddit)
-            else:
-                missing_names.append(multireddit_name)
+    all_multireddits = reddit.user.multireddits()
+    multireddit_names = [m.name for m in all_multireddits if m.name in feeds]
+    multireddits = [m for m in all_multireddits if m.name in multireddit_names]
+    missing_names = [f for f in feeds if f not in multireddit_names]
 
     string = "'SHOW' STRING NOT SET TO ANYTHING"
 
@@ -97,21 +89,17 @@ def _main_show(reddit, username, verbose, feeds):
     else:
         raise ValueError(f"Unrecognized verbose level: {verbose}")
 
+    username = reddit.user.me().name
     multireddit_count = len(multireddits)
+    missing_count = len(missing_names)
+
     if multireddit_count > 0:
         print(f"Found {multireddit_count} feeds for user '{username}':")
         print(string)
 
-    if len(missing_names) > 0:
-        print(f"The following feeds don't exist for user '{username}': {', '.join(missing_names)}")
+    if missing_count > 0:
+        print(f"""The following {"feed doesn't" if missing_count == 1 else f"{missing_count} feeds don't"} exist for user '{username}': {', '.join(missing_names)}""")
 
-def _multireddit_exists(multireddit):
-    try:
-        multireddit.display_name
-    except prawcore.exceptions.NotFound as e:
-        return False
-    else:
-        return True
 
 def main():
 
@@ -144,7 +132,7 @@ def main():
     reddit = praw.Reddit(**reddit_auth)
 
     func = args_dict.pop("func")
-    func(reddit, reddit_auth["username"], **args_dict)
+    func(reddit, **args_dict)
 
 if __name__ == "__main__":
     main()
