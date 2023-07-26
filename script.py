@@ -116,6 +116,12 @@ def _main_create(reddit, feeds):
             m.delete()
             existing_feed_names.append(display_name)
 
+    created_feed_names = [f for f in feeds if f not in existing_feed_names]
+    created_count = len(created_feed_names)
+    if created_count > 0:
+        s = 's' if created_count > 1 else ''
+        print(f"Created {created_count} feed{s}: {', '.join(created_feed_names)}")
+
     existing_count = len(existing_feed_names)
     if existing_count > 0:
         s, nots = ('s', '') if existing_count > 1 else ('', 's')
