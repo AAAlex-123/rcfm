@@ -127,10 +127,43 @@ def _main_create(reddit, feeds):
         s, nots = ('s', '') if existing_count > 1 else ('', 's')
         print(f"The following {existing_count} feed{s} already exist{nots}: {', '.join(existing_feed_names)}")
 
+def _main_delete(reddit, force, feeds):
+    print(f"Calling _main_delete() with {reddit=}, {force=}, {feeds}")
+
+    all_multireddits = reddit.user.multireddits()
+    multireddit_names = [m.name for m in all_multireddits if m.name in feeds]
+    multireddits = [m for m in all_multireddits if m.name in multireddit_names]
+    missing_names = [f for f in feeds if f not in multireddit_names]
+
+    deleted_names = []
+    not_deleted_names = []
+    for m in multireddits:
+        if force or len(m.subreddits) == 0:
+            m.delete()
+            deleted_names.append(m.name)
+        else:
+            not_deleted_names.append(m.name)
+
+    username = reddit.user.me().name
+    deleted_count = len(deleted_names)
+    if deleted_count > 0:
+        s = 's' if deleted_count > 1 else ''
+        print(f"Deleted {deleted_count} feed{s} for user '{username}': {', '.join(deleted_names)}")
+
+    not_deleted_count = len(not_deleted_names)
+    if not_deleted_count > 0:
+        s = 's' if not_deleted_count > 1 else ''
+        print(f"Did not delete {not_deleted_count} non-empty feed{s} for user '{username}': {', '.join(not_deleted_names)}")
+
+    missing_count = len(missing_names)
+    if missing_count > 0:
+        print(f"""The following {"feed doesn't" if missing_count == 1 else f"{missing_count} feeds don't"} exist for user '{username}': {', '.join(missing_names)}""")
+
 def main():
     commands = {
         "show": _main_show,
         "create": _main_create,
+        "delete": _main_delete,
     }
 
     parser = argparse.ArgumentParser(description="Show existing feeds (wip). More commands to come!")
@@ -153,6 +186,13 @@ def main():
     parser_create.add_argument("feeds", nargs='+', help="the names of the feeds to create")
     # TODO: more options like verbose output etc
     parser_create.set_defaults(func=commands[curr_command])
+
+    curr_command = "delete"
+    parser_delete = subparsers.add_parser(curr_command, help="delete existing feeds")
+    parser_delete.add_argument("feeds", nargs='+', help="the names of the feeds to delete")
+    parser_delete.add_argument("-f", "--force", action="store_true", help="force delete feeds even if they are not empty")
+    # TODO: more options like verbose output etc
+    parser_delete.set_defaults(func=commands[curr_command])
 
     # TODO: fix what happens on error (https://stackoverflow.com/questions/4042452/display-help-message-with-python-argparse-when-script-is-called-without-any-argu#answer-47440202)
     args = parser.parse_args()
