@@ -159,11 +159,46 @@ def _main_delete(reddit, force, feeds):
     if missing_count > 0:
         print(f"""The following {"feed doesn't" if missing_count == 1 else f"{missing_count} feeds don't"} exist for user '{username}': {', '.join(missing_names)}""")
 
+def _main_update(reddit, delete, feed, subreddits):
+    print(f"Calling _main_update() with {reddit=}, {delete=}, {feed=}, {subreddits=}")
+
+    username = reddit.user.me().name
+    m = reddit.multireddit(redditor=username, name=feed)
+    if m not in reddit.user.multireddits():
+        print(f"Feed {m.name} not found for user '{username}'")
+        return
+
+    missing_names = []
+    for subreddit_name in subreddits:
+        s = reddit.subreddit(subreddit_name)
+        try:
+            s.name
+            if not delete:
+                m.add(s)
+            else:
+                m.remove(s)
+        except prawcore.exceptions.NotFound:
+            missing_names.append(subreddit_name)
+
+    missing_count = len(missing_names)
+
+    if missing_count < len(subreddits):
+        subreddits = ', '.join([s for s in subreddits if s not in missing_names])
+        add = "Added" if not delete else "Removed"
+        to = "to" if not delete else "from"
+        print(f"{add} the following subreddits {to} feed {feed} for user '{username}': {subreddits}")
+
+    if missing_count > 0:
+        subreddits_dont = "subreddit doesn't" if missing_count == 1 else f"{missing_count} subreddits don't"
+        subreddits = ', '.join(missing_names)
+        print(f"""The following {subreddits_dont} exist: {subreddits}""")
+
 def main():
     commands = {
         "show": _main_show,
         "create": _main_create,
         "delete": _main_delete,
+        "update": _main_update,
     }
 
     parser = argparse.ArgumentParser(description="Show existing feeds (wip). More commands to come!")
@@ -191,6 +226,14 @@ def main():
     parser_delete = subparsers.add_parser(curr_command, help="delete existing feeds")
     parser_delete.add_argument("feeds", nargs='+', help="the names of the feeds to delete")
     parser_delete.add_argument("-f", "--force", action="store_true", help="force delete feeds even if they are not empty")
+    # TODO: more options like verbose output etc
+    parser_delete.set_defaults(func=commands[curr_command])
+
+    curr_command = "update"
+    parser_delete = subparsers.add_parser(curr_command, help="add or remove subreddits from existing feeds")
+    parser_delete.add_argument("-d", "--delete", action="store_true", help="remove subreddits from feed instead of adding them to it")
+    parser_delete.add_argument("feed", help="the feed to update")
+    parser_delete.add_argument("subreddits", nargs='*', help="the subreddits to add/remove from the feed")
     # TODO: more options like verbose output etc
     parser_delete.set_defaults(func=commands[curr_command])
 
